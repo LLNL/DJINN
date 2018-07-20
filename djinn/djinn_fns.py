@@ -181,21 +181,12 @@ def tree_to_nn_weights(X, Y, num_trees, rfr, random_state) :
         m=len(new_n_ind[-2])
         ind=np.where(abs(djinn_weights[num_layers-3][:,-m:])>0)[0]
         for inds in range(len(djinn_weights[num_layers-2][:,ind])):
-            djinn_weights[num_layers-2][inds,ind]=xav(nn_in,nn_out)
-        
-        #remove this later-- use to plot tree    
-        #export_graphviz(rfr.estimators_[tree],"tree%s.dot"%tree)
-    
-        #init biases -- xav init; if bias <0 and w all 0 remove 
+            djinn_weights[num_layers-2][inds,ind]=xav(nn_in,nn_out) 
     
         # dump weights, arch, biases into dict to pass to tf
         tree_to_network['network_shape']['tree_%s'%tree] = djinn_arch
         tree_to_network['weights']['tree_%s'%tree] = djinn_weights
         tree_to_network['biases']['tree_%s'%tree] = [] #maybe add biases
-
-    #dump init djinn weights for testing
-    #with open("djinn_init_test.pkl","wb") as f:
-    #    cPickle.dump(tree_to_network,f)
 
     return tree_to_network
  
