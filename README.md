@@ -34,15 +34,6 @@ Examples for training DJINN models are included in the [tests](./tests) folder.
  -python [djinn_multiout_example.py](./tests/djinn_multiout_example.py) (multiple outputs)
 
 
-For Mac users with Anaconda installs, it might be necessary to manually install matplotlib via pip:
-
-    $ pip install matplotlib
-
-
-If matplotlib will not import, try running "pythonw", for example: 
-
-    $ pythonw djinn_example.py
-
 ### Documentation
 To view the DJINN documentation: 
 
