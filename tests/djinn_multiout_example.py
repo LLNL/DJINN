@@ -43,7 +43,7 @@ Y=np.column_stack((Y,0.5*Y))   # make two columns of outputs
 x_train,x_test,y_train,y_test=train_test_split(X,Y,test_size=0.2) 
    
 print("Create DJINN model with multiple outputs")
-modelname="multi_djinn_test"    # name the model
+modelname="multireg_djinn_test"    # name the model
 ntrees=1                        # number of trees = number of neural nets in ensemble
 maxdepth=4                      # max depth of tree -- optimize this for each data set
 dropout_keep=1.0                # dropout typically set to 1 for non-Bayesian models
@@ -59,7 +59,7 @@ epochs=np.min((300,optimal['epochs']))
 
 # train the model with these settings
 model.train(x_train,y_train, epochs=epochs,learn_rate=learnrate, batch_size=batchsize, 
-              display_step=1, save_files=True, file_name="multidjinn_test_files", 
+              display_step=1, save_files=True, file_name=modelname, 
               save_model=True,model_name=modelname)
 
 m=model.predict(x_test)
@@ -80,7 +80,7 @@ model.close_model()
 print("Reload model and continue training for 10 epochs")
 
 # reload model and continue training for 10 more epochs
-model2=djinn.load(model_name="multi_djinn_test")
+model2=djinn.load(model_name="multireg_djinn_test")
 
 model2.continue_training(x_train, y_train, 10, learnrate, batchsize)
 
@@ -98,7 +98,7 @@ print('Expl. Var.',exvar2)
 
 
 print ("Create Bayesian-DJINN model with multiple outputs")
-modelname="multi_bdjinn_test"  #name the model 
+modelname="multireg_bdjinn_test"  #name the model 
 ntrees=3                       # make ensemble of (3) models
 dropout_keep=0.95              # turn on dropout for error bars
 
@@ -111,7 +111,7 @@ epochs=optimal['epochs']
 
 # train the model with these settings
 bmodel.train(x_train,y_train,epochs=epochs,learn_rate=learnrate,batch_size=batchsize, 
-             display_step=1, save_files=True, file_name="bdjinn_test_files", 
+             display_step=1, save_files=True, file_name=modelname, 
               save_model=True,model_name=modelname)
 
 # evaluate 

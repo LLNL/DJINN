@@ -21,14 +21,13 @@ import numpy as np
 import cPickle
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.tree import _tree
-from sklearn.tree import export_graphviz #can remove this if not dumping dotfile
 from sklearn.preprocessing import MinMaxScaler
 try: from sklearn.model_selection import train_test_split
 except: from sklearn.cross_validation import train_test_split
 
 
         
-def tree_to_nn_weights(X, Y, num_trees, rfr, random_state) :
+def tree_to_nn_weights(regression, X, Y, num_trees, rfr, random_state) :
     """ Main function to map tree to neural network. Determines architecture, initial weights.  
         
     Args:
@@ -51,8 +50,12 @@ def tree_to_nn_weights(X, Y, num_trees, rfr, random_state) :
 
     #get input & output dimensions from data
     nin = X.shape[1]
-    if(Y.size > Y.shape[0]): nout = Y.shape[1]
-    else: nout = 1
+    if regression == True:
+        if(Y.size > Y.shape[0]): nout = Y.shape[1]
+        else: nout = 1
+
+    else: 
+        nout=len(np.unique(Y))
 
     #store nn info to pass to tf
     tree_to_network={}
@@ -181,7 +184,7 @@ def tree_to_nn_weights(X, Y, num_trees, rfr, random_state) :
         m=len(new_n_ind[-2])
         ind=np.where(abs(djinn_weights[num_layers-3][:,-m:])>0)[0]
         for inds in range(len(djinn_weights[num_layers-2][:,ind])):
-            djinn_weights[num_layers-2][inds,ind]=xav(nn_in,nn_out) 
+            djinn_weights[num_layers-2][inds,ind]=xav(nn_in,nn_out)
     
         # dump weights, arch, biases into dict to pass to tf
         tree_to_network['network_shape']['tree_%s'%tree] = djinn_arch
@@ -193,7 +196,7 @@ def tree_to_nn_weights(X, Y, num_trees, rfr, random_state) :
     
 
 
-def tf_dropout_regression(ttn, xscale, yscale, x1, y1, ntrees, filename, 
+def tf_dropout_regression(regression, ttn, xscale, yscale, x1, y1, ntrees, filename, 
                           learnrate, training_epochs, batch_size,
                           dropout_keep_prob, weight_reg, display_step, savefiles, 
                           savemodel, modelname, modelpath, random_state):
@@ -226,11 +229,20 @@ def tf_dropout_regression(ttn, xscale, yscale, x1, y1, ntrees, filename,
     #get size of input/output layer
     n_input = ttn['n_in']    
     n_classes = ttn['n_out']
+
     #scale data
     x1 = xscale.transform(x1)
-    if(n_classes == 1): y1 = yscale.transform(y1).flatten()
-    else: y1 = yscale.transform(y1)
+    if regression == True:
+        if(n_classes == 1): y1 = yscale.transform(y1.reshape(-1,1)).flatten()
+        else: y1 = yscale.transform(y1)
+
     xtrain, xtest, ytrain, ytest = train_test_split(x1, y1, test_size=0.1, random_state=random_state) 
+
+    #for classification, do one-hot encoding on classes
+    if regression == False:
+        ytrain=np.equal.outer(ytrain.flatten(), np.arange(len(np.unique(ytrain)))).astype("float32")
+        ytest=np.equal.outer(ytest.flatten(), np.arange(len(np.unique(ytest)))).astype("float32")
+
     pp = 0
     #create dict/arrays to save network info
     nninfo = {}
@@ -245,7 +257,7 @@ def tf_dropout_regression(ttn, xscale, yscale, x1, y1, ntrees, filename,
 
         #make placeholders for inputs/outputs/dropout
         x = tf.placeholder("float32", [None, n_input], name="input")
-        if(y1.ndim == 1): y = tf.placeholder("float32", [None], name="target")
+        if(n_classes == 1): y = tf.placeholder("float32", [None], name="target")
         else: y = tf.placeholder("float32", [None, n_classes], name="target")
         keep_prob = tf.placeholder(tf.float32, name="keep_prob")
 
@@ -273,8 +285,6 @@ def tf_dropout_regression(ttn, xscale, yscale, x1, y1, ntrees, filename,
         w = {}; b = {};
         for i in range(0, len(ttn['network_shape'][keys])-1):
             w[i+1] = np.transpose(ttn['weights'][keys][i]).astype((np.float32))
-        #for i in range(0, len(ttn['network_shape'][keys])-1):
-        #    b[i+1] = np.transpose(ttn['biases'][keys][i]).astype((np.float32))
 
         weights = {}
         for i in range(1, nhl+1):
@@ -292,10 +302,18 @@ def tf_dropout_regression(ttn, xscale, yscale, x1, y1, ntrees, filename,
         if(n_classes == 1): predictions = tf.reshape(pred, [-1])
         else: predictions = pred     
 
+        #for classification, we need to calculate the accuracy
+        if regression == False:             
+            accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1)), "float32"))
+
         #l2 weight penalty + mse cost fn  
         weight_decay = tf.reduce_sum(weight_reg * tf.stack([tf.nn.l2_loss(weights['h%s'%i]) 
                                          for i in range(1,nhl+1)] ))
-        cost = tf.add(tf.reduce_mean(tf.square(y-predictions)), 
+        if regression == False:
+            cost = tf.add(tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=y)), 
+                          weight_decay, name="cost") 
+        else:
+            cost = tf.add(tf.reduce_mean(tf.square(y-predictions)), 
                       weight_decay, name="cost") 
 
         #use adam optimizer from tflearn                                          
@@ -324,9 +342,16 @@ def tf_dropout_regression(ttn, xscale, yscale, x1, y1, ntrees, filename,
                                         keep_prob:dropout_keep_prob})
                     avg_cost += c / total_batch
                 train_accur[pp][epoch] = avg_cost
-                valid_accur[pp][epoch] = cost.eval({x: xtest, y: ytest, keep_prob:dropout_keep_prob})    
+                valid_accur[pp][epoch] = cost.eval({x: xtest, y: ytest, keep_prob:dropout_keep_prob}) 
+                # display training progresss
                 if epoch % display_step == 0:
-                    print("Epoch:", '%04d' % (epoch+1), "cost=", "{:.9f}".format(avg_cost))
+                    if regression == True:
+                        print("Epoch:", '%04d' % (epoch+1), "cost=", "{:.9f}".format(avg_cost))
+                    #for classification, print cost and accuracy:
+                    else: 
+                        avg_accuracy = accuracy.eval({x: xtrain, y: ytrain, keep_prob:dropout_keep_prob})
+                        print("Epoch:", '%04d' % (epoch+1), "cost=", "{:.9f}".format(avg_cost),
+                               "accuracy=", "{:.3f}".format(avg_accuracy))
             print("Optimization Finished!")
 
             #save final weights/biases
@@ -339,16 +364,17 @@ def tf_dropout_regression(ttn, xscale, yscale, x1, y1, ntrees, filename,
         sess.close()    
         pp += 1 
    
-    #save files with nn info        
-    if(savefiles == True):
-        np.savetxt('%strain_cost_per_epoch_%s'%(modelpath, filename), train_accur) 
-        np.savetxt('%svalid_cost_per_epoch_%s'%(modelpath, filename), valid_accur)             
+    #save files with nn info  
+    nninfo['train_cost'] = train_accur
+    nninfo['valid_cost'] = valid_accur
+    if(savefiles == True):        
         with open('%snn_info_%s.pkl'%(modelpath, filename), 'wb') as f1:
             cPickle.dump(nninfo, f1)
     return(nninfo)
 
 
-def get_hyperparams(ttn, xscale, yscale, x1, y1, dropout_keep_prob, weight_reg, random_state):
+def get_hyperparams(regression, ttn, xscale, yscale, x1, y1, dropout_keep_prob, 
+                    weight_reg, random_state):
     """Performs search for automatic selection of djinn hyper-parameters.
         
     Returns learning rate, number of epochs, batch size.
@@ -370,12 +396,21 @@ def get_hyperparams(ttn, xscale, yscale, x1, y1, dropout_keep_prob, weight_reg, 
     #get size of input/output
     n_input = ttn['n_in']    
     n_classes = ttn['n_out']
+
     #scale data
     x1 = xscale.transform(x1)
-    if(n_classes == 1): y1 = yscale.transform(y1).flatten()
-    else: y1 = yscale.transform(y1)    
-    x1 = xscale.transform(x1)
+    if regression == True: 
+        if(n_classes == 1): y1 = yscale.transform(y1).flatten()
+        else: y1 = yscale.transform(y1)  
+
+
     xtrain, xtest, ytrain, ytest = train_test_split(x1, y1, test_size=0.1, random_state=random_state) 
+
+    #for classification, do one-hot encoding on classes
+    if regression == False:
+        ytrain=np.equal.outer(ytrain.flatten(), np.arange(len(np.unique(ytrain)))).astype("float32")
+        ytest=np.equal.outer(ytest.flatten(), np.arange(len(np.unique(ytest)))).astype("float32")
+
     ystar = {}
     ystar['preds'] = {}
 
@@ -430,18 +465,32 @@ def get_hyperparams(ttn, xscale, yscale, x1, y1, dropout_keep_prob, weight_reg, 
                 weights['h%s'%i] = tf.Variable(w[i])
             weights['out'] = tf.Variable(w[nhl+1])  
             for i in range(1, nhl+1):
-                biases['h%s'%i] = tf.Variable(tf.random_normal([int(n_hidden[i])], mean=0.0, stddev=np.sqrt(3.0/(n_classes+int(n_hidden[nhl])))))
-            biases['out'] = tf.Variable(tf.random_normal([n_classes], mean=0.0, stddev=np.sqrt(3.0/(n_classes+int(n_hidden[nhl])))))  
+                biases['h%s'%i] = tf.Variable(tf.random_normal([int(n_hidden[i])], mean=0.0, 
+                                              stddev=np.sqrt(3.0/(n_classes+int(n_hidden[nhl])))))
+            biases['out'] = tf.Variable(tf.random_normal([n_classes], mean=0.0, 
+                                        stddev=np.sqrt(3.0/(n_classes+int(n_hidden[nhl])))))  
 
             pred = multilayer_perceptron(x, weights, biases)
             if(n_classes == 1): predictions = tf.reshape(pred, [-1])
             else: predictions = pred
 
-            weight_decay = tf.reduce_sum(weight_reg * tf.stack([tf.nn.l2_loss(weights['h%s'%i]) for i in range(1,nhl+1)] ))
-            cost = tf.reduce_mean(tf.square(y-predictions)) + weight_decay                 
+            #for classification, we need to calculate the accuracy
+            if regression == False:             
+                accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1)), "float32"))
+
+            #l2 weight penalty + mse cost fn  
+            weight_decay = tf.reduce_sum(weight_reg * tf.stack([tf.nn.l2_loss(weights['h%s'%i]) 
+                                         for i in range(1,nhl+1)] ))
+            if regression == False:
+                cost = tf.add(tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=y)), 
+                              weight_decay, name="cost") 
+            else:
+                cost = tf.add(tf.reduce_mean(tf.square(y-predictions)), 
+                          weight_decay, name="cost") 
+
             optimizer = tf.contrib.layers.optimize_loss(loss=cost,
-                        global_step=tf.contrib.framework.get_global_step(),
-                        learning_rate=lrs[pp], optimizer="Adam")
+                global_step=tf.contrib.framework.get_global_step(),
+                learning_rate=lrs[pp], optimizer="Adam")
 
             init = tf.global_variables_initializer()
             with tf.Session() as sess:
@@ -509,7 +558,7 @@ def get_hyperparams(ttn, xscale, yscale, x1, y1, dropout_keep_prob, weight_reg, 
 
 
 
-def tf_continue_training(xscale, yscale, x1, y1, ntrees, 
+def tf_continue_training(regression, xscale, yscale, x1, y1, ntrees, 
                           learnrate, training_epochs, batch_size,
                           dropout_keep_prob, nhl, display_step, 
                           modelname, modelpath, random_state):
@@ -537,12 +586,19 @@ def tf_continue_training(xscale, yscale, x1, y1, ntrees,
     nhl = int(nhl)
     model_path=modelpath
     model_name=modelname
-    try:n_classes=y1.shape[1]
-    except: n_classes=1
+    if(y1.size > y1.shape[0]): n_classes = y1.shape[1]
+    else: n_classes = 1
+
     sess = {}
     xtrain = xscale.transform(x1)
-    if(n_classes == 1): ytrain = yscale.transform(y1.reshape(-1,1)).flatten()
-    else: ytrain = yscale.transform(y1)
+    if regression == True:
+        if(n_classes == 1): ytrain = yscale.transform(y1.reshape(-1,1)).flatten()
+        else: ytrain = yscale.transform(y1)
+
+    #for classification, do one-hot encoding on classes
+    if regression == False:
+        ytrain=np.equal.outer(y1.flatten(), np.arange(len(np.unique(y1)))).astype("float32")
+
     nninfo = {}
     nninfo['weights'] = {}; nninfo['biases'] = {}; nninfo['initial_weights'] = {};
     if (random_state): tf.set_random_seed(random_state)
@@ -551,6 +607,7 @@ def tf_continue_training(xscale, yscale, x1, y1, ntrees,
         sess[pp] = tf.Session()
         old_saver.restore(sess[pp], '%s%s_tree%s.ckpt'%(model_path,model_name,pp))
         print("Model %s restored"%pp)
+
         #Restore tensors from previous session
         x = sess[pp].graph.get_tensor_by_name("input:0")
         y = sess[pp].graph.get_tensor_by_name("target:0")
@@ -565,6 +622,11 @@ def tf_continue_training(xscale, yscale, x1, y1, ntrees,
         weights['out'] = sess[pp].graph.get_tensor_by_name("w%s:0"%(nhl+1))  
         biases['out'] = sess[pp].graph.get_tensor_by_name("b%s:0"%nhl)  
         nninfo['initial_weights']['tree%s'%pp] = sess[pp].run(weights)
+
+        #for classification, we need to calculate the accuracy
+        if regression == False:             
+            accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1)), "float32"))
+
         #continue training
         for epoch in range(training_epochs):
             avg_cost = 0.
@@ -576,10 +638,18 @@ def tf_continue_training(xscale, yscale, x1, y1, ntrees,
                                         feed_dict={x: batch_x, y: batch_y, 
                                         keep_prob:dropout_keep_prob})
                 avg_cost += c / total_batch
-   
+                # display training progresss
             if epoch % display_step == 0:
-                print("Epoch:", '%04d' % (epoch+1), "cost=", "{:.9f}".format(avg_cost))
+                if regression == True:
+                    print("Epoch:", '%04d' % (epoch+1), "cost=", "{:.9f}".format(avg_cost))
+                #for classification, print cost and accuracy:
+                else: 
+                    avg_accuracy = sess[pp].run(accuracy, 
+                        feed_dict = {x: xtrain, y: ytrain, keep_prob:dropout_keep_prob})
+                    print("Epoch:", '%04d' % (epoch+1), "cost=", "{:.9f}".format(avg_cost),
+                           "accuracy=", "{:.3f}".format(avg_accuracy))
         print("Optimization Finished!")
+
         #save model and nn info 
         save_path = old_saver.save(sess[pp], "%s%s_tree%s.ckpt"%(modelpath, modelname, pp))
         print("Model resaved in file: %s" % save_path)

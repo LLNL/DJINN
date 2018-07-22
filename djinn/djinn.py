@@ -58,9 +58,11 @@ class DJINN_Regressor():
         self.__dropout_keep_prob = dropout_keep_prob
         self.__yscale = None
         self.__xscale = None
+        self.__sess = None
+        self.__regression = True
         self.modelname = None
         self.modelpath = None
-        self.__sess = None
+
 
 
 
@@ -94,33 +96,45 @@ class DJINN_Regressor():
             Y = Y.reshape(-1,1)
 
         # Scale the data
-        self.__yscale = MinMaxScaler().fit(Y)
         self.__xscale = MinMaxScaler().fit(X)
-        # Fit the random forest model
-        rfr = RandomForestRegressor(self.__n_trees,
-              max_depth=self.__tree_max_depth, bootstrap=False, 
-              random_state=random_state)
+        if self.__regression == True: 
+            self.__yscale = MinMaxScaler().fit(Y)
 
-        if (single_output == True): 
-            rfr.fit(self.__xscale.transform(X), self.__yscale.transform(Y).flatten())
+
+        # Train the random forest
+        rfr = RandomForestRegressor(self.__n_trees, max_depth=self.__tree_max_depth,
+                                    bootstrap=False, random_state=random_state)
+        if self.__regression == True: 
+            if (single_output == True): 
+                rfr.fit(self.__xscale.transform(X), self.__yscale.transform(Y).flatten())
+            else: 
+                rfr.fit(self.__xscale.transform(X), self.__yscale.transform(Y))
+
         else: 
-            rfr.fit(self.__xscale.transform(X), self.__yscale.transform(Y))
+            if (single_output == True): 
+                rfr.fit(self.__xscale.transform(X), Y.flatten())
+            else: 
+                rfr.fit(self.__xscale.transform(X), Y)
 
         if(rfr.estimators_[0].tree_.max_depth < 1):
             raise Exception("Error: Cannot build decision tree.")
+
         # Map trees to initialized neural networks
-        tree_to_network = tree_to_nn_weights(X, Y, self.__n_trees, rfr, random_state)
+        tree_to_network = tree_to_nn_weights(self.__regression, X, Y, self.__n_trees, rfr, random_state)
+
         print('Finding optimal hyper-parameters...')
         # Run auto-djinn 
-        nn_batch_size, learnrate, nn_epochs = get_hyperparams(tree_to_network, 
-            self.__xscale, self.__yscale, X, Y, self.__dropout_keep_prob, weight_reg, 
-            random_state=random_state)        
+        nn_batch_size, learnrate, nn_epochs = get_hyperparams(self.__regression, 
+                tree_to_network, self.__xscale, self.__yscale, X, Y, 
+                self.__dropout_keep_prob, weight_reg, random_state=random_state)       
+ 
         return({'batch_size':nn_batch_size, 'learn_rate':learnrate, 'epochs':nn_epochs})
         
 
 
     def train(self, X, Y, epochs=1000, learn_rate=0.001, batch_size=0, weight_reg=1.0e-8,
-              display_step=1, save_files=True, file_name="djinn", save_model=True, model_name="djinn_model", model_path="./", random_state=None):
+              display_step=1, save_files=True, file_name="djinn", save_model=True, 
+              model_name="djinn_model", model_path="./", random_state=None):
         """Train djinn with specified hyperparameters.
         
         Args: 
@@ -156,26 +170,36 @@ class DJINN_Regressor():
         if (Y.ndim == 1): 
             single_output = True
             Y = Y.reshape(-1,1)
+
         # Create scalers 
         if(self.__xscale == None):
-            self.__yscale = MinMaxScaler().fit(Y)
             self.__xscale = MinMaxScaler().fit(X)
+            if self.__regression == True:
+                self.__yscale = MinMaxScaler().fit(Y)
+
         # Train the random forest
         rfr = RandomForestRegressor(self.__n_trees, max_depth=self.__tree_max_depth,
                                     bootstrap=False, random_state=random_state)
-        if (single_output == True): 
-            rfr.fit(self.__xscale.transform(X), self.__yscale.transform(Y).flatten())
+        if self.__regression == True: 
+            if (single_output == True): 
+                rfr.fit(self.__xscale.transform(X), self.__yscale.transform(Y).flatten())
+            else: 
+                rfr.fit(self.__xscale.transform(X), self.__yscale.transform(Y))
+
         else: 
-            rfr.fit(self.__xscale.transform(X), self.__yscale.transform(Y))
+            if (single_output == True): 
+                rfr.fit(self.__xscale.transform(X), Y.flatten())
+            else: 
+                rfr.fit(self.__xscale.transform(X), Y)
 
         # Check the forest was successful
         if(rfr.estimators_[0].tree_.max_depth <= 1):
             raise Exception("Error: Cannot build decision tree.")
         # Map trees to neural networks
-        tree_to_network = tree_to_nn_weights(X, Y, self.__n_trees, rfr, random_state)
+        tree_to_network = tree_to_nn_weights(self.__regression, X, Y, self.__n_trees, rfr, random_state)
         if(batch_size == 0): batch_size = int(np.ceil(0.05*len(Y)))
-        tf_dropout_regression(tree_to_network, self.__xscale, self.__yscale, 
-                             X, Y,ntrees=self.__n_trees,
+        tf_dropout_regression(self.__regression, tree_to_network, self.__xscale, 
+                             self.__yscale, X, Y,ntrees=self.__n_trees,
                              filename=file_name, learnrate=learn_rate, 
                              training_epochs=epochs, batch_size=batch_size,
                              dropout_keep_prob=self.__dropout_keep_prob, weight_reg=weight_reg, 
@@ -295,11 +319,14 @@ class DJINN_Regressor():
             x = self.__sess[p].graph.get_tensor_by_name("input:0")
             keep_prob = self.__sess[p].graph.get_tensor_by_name("keep_prob:0")
             pred = self.__sess[p].graph.get_tensor_by_name("prediction:0")
-            samples['predictions']['tree%s'%p] = [self.__yscale.inverse_transform(self.__sess[p].run(pred,\
-                                                  feed_dict={x:x_test, keep_prob:self.__dropout_keep_prob})) for i in range(n_iters)]
+            samples['predictions']['tree%s'%p] = \
+                   [self.__yscale.inverse_transform(self.__sess[p].run(pred,\
+                   feed_dict={x:x_test, keep_prob:self.__dropout_keep_prob})) 
+                   for i in range(n_iters)]
 
         nout = samples['predictions']['tree0'][0].shape[1]
-        preds = np.array([samples['predictions'][t] for t in samples['predictions']]).reshape((n_iters*self.__n_trees, len(x_test), nout))
+        preds = np.array([samples['predictions'][t] 
+                for t in samples['predictions']]).reshape((n_iters*self.__n_trees, len(x_test), nout))
 
         middle = np.percentile(preds, 50, axis=0)
         lower = np.percentile(preds, 25, axis=0)
@@ -336,7 +363,8 @@ class DJINN_Regressor():
         nout = predictions['tree0'][0].shape[1]
         n_iters = len(predictions['tree0'])
         xlength = predictions['tree0'][0].shape[0]
-        preds = np.array([predictions[t] for t in predictions]).reshape((n_iters*self.__n_trees, xlength, nout))
+        preds = np.array([predictions[t] 
+                for t in predictions]).reshape((n_iters*self.__n_trees, xlength, nout))
         return(preds)
       
 
@@ -360,8 +388,78 @@ class DJINN_Regressor():
         ntrees=self.__n_trees
         nhl=self.__tree_max_depth-1
         dropout_keep_prob=self.__dropout_keep_prob
-        tf_continue_training(self.__xscale, self.__yscale, X, Y, ntrees, 
-                          learn_rate, training_epochs, batch_size,
-                          self.__dropout_keep_prob, nhl, display_step, 
-                          self.modelname, self.modelpath, random_state)
+        tf_continue_training(self.__regression, self.__xscale, self.__yscale, 
+                            X, Y, ntrees, learn_rate, training_epochs, batch_size,
+                            self.__dropout_keep_prob, nhl, display_step,
+                            self.modelname, self.modelpath, random_state)
 
+
+
+
+class DJINN_Classifier(DJINN_Regressor):
+    """DJINN classification model.
+
+    Args:
+        n_trees (int): Number of trees in random forest 
+                (equal to the number of neural networks).
+        max_tree_depth (int): Maximum depth of decision tree. 
+                       Neural network will have max_tree_depth-1 
+                       hidden layers.
+        dropout_keep_prob (float): Probability of keeping a neuron
+                          in dropout layers.  
+    """
+    def __init__(self, n_trees=1, max_tree_depth=4, dropout_keep_prob=1.0):
+        DJINN_Regressor.__init__(self, n_trees, max_tree_depth, dropout_keep_prob)
+        self._DJINN_Regressor__regression = False
+
+    def bayesian_predict(self, x_test, n_iters, random_state=None):
+        """Bayesian distribution of predictions for a set of test data.
+
+        Args:
+            x_test (ndarray): Input parameters for test data.
+            n_iters (int): Number of times to evaluate each neural network 
+                           per test point.
+            random_state (int): Set the random seed. 
+       
+        Returns:
+            tuple (ndarray, ndarray, ndarray, dict):
+                25th percentile of distribution of predictions for each test point.
+                50th percentile of distribution of predictions for each test point.
+                75th percentile of distribution of predictions for each test point.
+                Dictionary containing inputs and predictions per tree, per
+                  iteration, for each test point.
+                  
+        """    
+        nonBayes = False
+        if(n_iters == None):
+            nonBayes = True
+            n_iters = 1
+        if(random_state): tf.set_random_seed(random_state)
+        if(self._DJINN_Regressor__sess == None): self.load_model(self.modelname, self.modelpath)
+        if(x_test.ndim == 1): x_test = x_test.reshape(1,-1)
+        samples = {}
+        samples['inputs'] = x_test
+        x_test = self._DJINN_Regressor__xscale.transform(x_test)
+        samples['predictions'] = {}
+        for p in range(0, self._DJINN_Regressor__n_trees):
+            x = self._DJINN_Regressor__sess[p].graph.get_tensor_by_name("input:0")
+            keep_prob = self._DJINN_Regressor__sess[p].graph.get_tensor_by_name("keep_prob:0")
+            pred = self._DJINN_Regressor__sess[p].graph.get_tensor_by_name("prediction:0")
+            samples['predictions']['tree%s'%p] = \
+                  [self._DJINN_Regressor__sess[p].run(pred,\
+                  feed_dict={x:x_test, keep_prob:self._DJINN_Regressor__dropout_keep_prob}) for i in range(n_iters)]
+
+        nout = samples['predictions']['tree0'][0].shape[1]
+        preds = np.array([samples['predictions'][t] 
+                for t in samples['predictions']]).reshape((n_iters*self._DJINN_Regressor__n_trees, len(x_test), nout))
+        print(preds.shape)
+        middle = np.argmax(np.percentile(preds,50,axis=0),1)
+        lower = np.argmax(np.percentile(preds,25,axis=0), 1)
+        upper = np.argmax(np.percentile(preds,75,axis=0), 1)
+
+        if(nonBayes == True):
+            return(middle)
+        else:
+            return(lower, middle, upper, samples)
+
+    
