@@ -19,7 +19,7 @@
 ###############################################################################
 # Demo script for DJINN 
 # Below, each function available in DJINN is demonstrated for the 
-# Boston housing dataset. Please see comments and djinn docs for
+# iris classification dataset. Please see comments and djinn docs for
 # details on each function. 
 ###############################################################################
 
@@ -35,11 +35,6 @@ from sklearn import datasets
 from djinn import djinn
 print(sklearn.__version__)
 
-''' 
-    NOTE: for the boston housing data you can expect test 
-    MSE~10-20, Mean Abs Err~3-4, Exp.Var.~0.8+
-    when using get_hyperparameters() function
-'''
 
 #Load the data, split into training/testing groups
 d=datasets.load_iris()
@@ -86,7 +81,7 @@ print('Accuracy',acc)
 #close model 
 model.close_model()
 
-print("Reload model and continue training for 10 epochs")
+print("Reload model and continue training")
 # reload model; can also open it using cPickle.load()
 model2=djinn.load(model_name="class_djinn_test")
 
