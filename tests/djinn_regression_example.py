@@ -90,7 +90,7 @@ print('Expl. Var.',exvar)
 #close model 
 model.close_model()
 
-print("Reload model and continue training for 10 epochs")
+print("Reload model and continue training for 20 epochs")
 # reload model; can also open it using cPickle.load()
 model2=djinn.load(model_name="reg_djinn_test")
 

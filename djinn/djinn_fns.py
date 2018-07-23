@@ -18,13 +18,12 @@
 
 import tensorflow as tf
 import numpy as np
-import cPickle
-from sklearn.ensemble import RandomForestRegressor
 from sklearn.tree import _tree
 from sklearn.preprocessing import MinMaxScaler
 try: from sklearn.model_selection import train_test_split
 except: from sklearn.cross_validation import train_test_split
-
+try: import cPickle
+except: import _pickle as cPickle
 
         
 def tree_to_nn_weights(regression, X, Y, num_trees, rfr, random_state) :

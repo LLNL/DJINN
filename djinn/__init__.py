@@ -15,4 +15,5 @@
 #
 # For details about use and distribution, please read DJINN/LICENSE .
 ###############################################################################
+
 __all__ = ['djinn']

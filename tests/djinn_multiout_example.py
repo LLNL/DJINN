@@ -77,12 +77,12 @@ for i in [0,1]:
 # close model 
 model.close_model()
 
-print("Reload model and continue training for 10 epochs")
+print("Reload model and continue training for 50 epochs")
 
-# reload model and continue training for 10 more epochs
+# reload model and continue training for 50 more epochs
 model2=djinn.load(model_name="multireg_djinn_test")
 
-model2.continue_training(x_train, y_train, 10, learnrate, batchsize)
+model2.continue_training(x_train, y_train, 50, learnrate, batchsize)
 
 m2=model2.predict(x_test)
 
