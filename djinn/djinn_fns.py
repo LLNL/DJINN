@@ -317,7 +317,7 @@ def tf_dropout_regression(regression, ttn, xscale, yscale, x1, y1, ntrees, filen
 
         #use adam optimizer from tflearn                                          
         optimize = tf.contrib.layers.optimize_loss(loss=cost,
-                    global_step=tf.contrib.framework.get_global_step(),
+                    global_step=tf.train.get_global_step(),
                     learning_rate=learnrate, optimizer="Adam")
         optimizer=tf.add(optimize,0,name="opt")
 
@@ -488,7 +488,7 @@ def get_hyperparams(regression, ttn, xscale, yscale, x1, y1, dropout_keep_prob,
                           weight_decay, name="cost") 
 
             optimizer = tf.contrib.layers.optimize_loss(loss=cost,
-                global_step=tf.contrib.framework.get_global_step(),
+                global_step=tf.train.get_global_step(),
                 learning_rate=lrs[pp], optimizer="Adam")
 
             init = tf.global_variables_initializer()
@@ -517,7 +517,7 @@ def get_hyperparams(regression, ttn, xscale, yscale, x1, y1, dropout_keep_prob,
     training_epochs = 3000; pp = 0;
     accur = np.zeros((1, training_epochs))
     optimizer = tf.contrib.layers.optimize_loss(loss=cost,
-                global_step=tf.contrib.framework.get_global_step(),
+                global_step=tf.train.get_global_step(),
                 learning_rate=learnrate, optimizer="Adam")
 
     init = tf.global_variables_initializer()    
