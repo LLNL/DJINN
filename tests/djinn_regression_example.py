@@ -22,12 +22,9 @@
 # Boston housing dataset. Please see comments and djinn docs for
 # details on each function. 
 ###############################################################################
-
-import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 import sklearn
-import cPickle
 try: from sklearn.model_selection import train_test_split
 except: from sklearn.cross_validation import train_test_split
 

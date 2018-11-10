@@ -20,7 +20,6 @@
 # Multiple-output regression demo script for DJINN 
 # Please see comments and djinn docs for details. 
 ###############################################################################
-import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 import sklearn.datasets
