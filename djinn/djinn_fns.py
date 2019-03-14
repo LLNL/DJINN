@@ -229,6 +229,13 @@ def tf_dropout_regression(regression, ttn, xscale, yscale, x1, y1, ntrees, filen
     n_input = ttn['n_in']    
     n_classes = ttn['n_out']
 
+    #save min/max values for python-only djinn eval
+    input_min = np.min(x1, axis=0)
+    input_max = np.max(x1, axis=0)
+    if(n_classes == 1): y1 = y1.reshape(-1,1)
+    output_min = np.min(y1, axis=0)
+    output_max = np.max(y1, axis=0)
+
     #scale data
     x1 = xscale.transform(x1)
     if regression == True:
@@ -245,6 +252,8 @@ def tf_dropout_regression(regression, ttn, xscale, yscale, x1, y1, ntrees, filen
     pp = 0
     #create dict/arrays to save network info
     nninfo = {}
+    nninfo['input_minmax'] = [input_min, input_max]
+    nninfo['output_minmax'] = [output_min, output_max]
     nninfo['initial_weights'] = {}; nninfo['initial_biases'] = {}; 
     nninfo['final_weights'] = {}; nninfo['final_biases'] = {}; 
     train_accur = np.zeros((ntrees, training_epochs))
