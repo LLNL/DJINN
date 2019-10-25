@@ -16,7 +16,9 @@
 # For details about use and distribution, please read DJINN/LICENSE .
 ###############################################################################
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
+import tensorflow_addons as tfa
 import numpy as np
 from sklearn.tree import _tree
 from sklearn.preprocessing import MinMaxScaler
@@ -325,10 +327,12 @@ def tf_dropout_regression(regression, ttn, xscale, yscale, x1, y1, ntrees, filen
                       weight_decay, name="cost") 
 
         #use adam optimizer from tflearn                                          
-        optimize = tf.contrib.layers.optimize_loss(loss=cost,
-                    global_step=tf.train.get_global_step(),
-                    learning_rate=learnrate, optimizer="Adam")
-        optimizer=tf.add(optimize,0,name="opt")
+            #optimizer = tfa.layers.optimize_loss(loss=cost,
+            #    global_step=tf.train.get_global_step(),
+            #    learning_rate=learnrate, optimizer="Adam")
+        optimizer = tf.train.AdamOptimizer(learning_rate=learnrate).minimize(loss=cost,  global_step=tf.train.get_global_step(),name="opt")
+
+        #optimizer=tf.add(optimize,0)
 
         #initialize vars & launch session
         init = tf.global_variables_initializer()
@@ -496,9 +500,12 @@ def get_hyperparams(regression, ttn, xscale, yscale, x1, y1, dropout_keep_prob,
                 cost = tf.add(tf.reduce_mean(tf.square(y-predictions)), 
                           weight_decay, name="cost") 
 
-            optimizer = tf.contrib.layers.optimize_loss(loss=cost,
-                global_step=tf.train.get_global_step(),
-                learning_rate=lrs[pp], optimizer="Adam")
+            #optimizer = tfa.layers.optimize_loss(loss=cost,
+            #    global_step=tf.train.get_global_step(),
+            #    learning_rate=lrs[pp], optimizer="Adam")
+            optimizer = tf.train.AdamOptimizer(learning_rate=lrs[pp]).minimize(loss=cost,  global_step=tf.train.get_global_step())
+
+
 
             init = tf.global_variables_initializer()
             with tf.Session() as sess:
@@ -525,9 +532,11 @@ def get_hyperparams(regression, ttn, xscale, yscale, x1, y1, dropout_keep_prob,
     print("Determining number of epochs needed...")
     training_epochs = 3000; pp = 0;
     accur = np.zeros((1, training_epochs))
-    optimizer = tf.contrib.layers.optimize_loss(loss=cost,
-                global_step=tf.train.get_global_step(),
-                learning_rate=learnrate, optimizer="Adam")
+            #optimizer = tfa.layers.optimize_loss(loss=cost,
+            #    global_step=tf.train.get_global_step(),
+            #    learning_rate=learnrate, optimizer="Adam")
+    optimizer = tf.train.AdamOptimizer(learning_rate=learnrate).minimize(loss=cost,  global_step=tf.train.get_global_step())
+
 
     init = tf.global_variables_initializer()    
     with tf.Session() as sess:
@@ -621,7 +630,7 @@ def tf_continue_training(regression, xscale, yscale, x1, y1, ntrees,
         y = sess[pp].graph.get_tensor_by_name("target:0")
         keep_prob = sess[pp].graph.get_tensor_by_name("keep_prob:0")
         pred = sess[pp].graph.get_tensor_by_name("prediction:0")
-        optimizer = sess[pp].graph.get_tensor_by_name("opt:0")
+        optimizer = sess[pp].graph.get_operation_by_name("w1/Adam")
         cost = sess[pp].graph.get_tensor_by_name("cost:0")
         weights={}; biases={};
         for i in range(1,nhl+1):
