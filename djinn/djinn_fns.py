@@ -16,9 +16,7 @@
 # For details about use and distribution, please read DJINN/LICENSE .
 ###############################################################################
 
-import tensorflow.compat.v1 as tf
-tf.disable_v2_behavior()
-import tensorflow_addons as tfa
+import tensorflow as tf
 import numpy as np
 from sklearn.tree import _tree
 from sklearn.preprocessing import MinMaxScaler
@@ -230,7 +228,6 @@ def tf_dropout_regression(regression, ttn, xscale, yscale, x1, y1, ntrees, filen
     #get size of input/output layer
     n_input = ttn['n_in']    
     n_classes = ttn['n_out']
-
     #save min/max values for python-only djinn eval
     input_min = np.min(x1, axis=0)
     input_max = np.max(x1, axis=0)
@@ -241,7 +238,7 @@ def tf_dropout_regression(regression, ttn, xscale, yscale, x1, y1, ntrees, filen
     #scale data
     x1 = xscale.transform(x1)
     if regression == True:
-        if(n_classes == 1): y1 = yscale.transform(y1.reshape(-1,1)).flatten()
+        if(n_classes == 1): y1 = yscale.transform(y1).flatten()
         else: y1 = yscale.transform(y1)
 
     xtrain, xtest, ytrain, ytest = train_test_split(x1, y1, test_size=0.1, random_state=random_state) 
@@ -327,12 +324,10 @@ def tf_dropout_regression(regression, ttn, xscale, yscale, x1, y1, ntrees, filen
                       weight_decay, name="cost") 
 
         #use adam optimizer from tflearn                                          
-            #optimizer = tfa.layers.optimize_loss(loss=cost,
-            #    global_step=tf.train.get_global_step(),
-            #    learning_rate=learnrate, optimizer="Adam")
-        optimizer = tf.train.AdamOptimizer(learning_rate=learnrate).minimize(loss=cost,  global_step=tf.train.get_global_step(),name="opt")
-
-        #optimizer=tf.add(optimize,0)
+        optimize = tf.contrib.layers.optimize_loss(loss=cost,
+                    global_step=tf.train.get_global_step(),
+                    learning_rate=learnrate, optimizer="Adam")
+        optimizer=tf.add(optimize,0,name="opt")
 
         #initialize vars & launch session
         init = tf.global_variables_initializer()
@@ -500,12 +495,9 @@ def get_hyperparams(regression, ttn, xscale, yscale, x1, y1, dropout_keep_prob,
                 cost = tf.add(tf.reduce_mean(tf.square(y-predictions)), 
                           weight_decay, name="cost") 
 
-            #optimizer = tfa.layers.optimize_loss(loss=cost,
-            #    global_step=tf.train.get_global_step(),
-            #    learning_rate=lrs[pp], optimizer="Adam")
-            optimizer = tf.train.AdamOptimizer(learning_rate=lrs[pp]).minimize(loss=cost,  global_step=tf.train.get_global_step())
-
-
+            optimizer = tf.contrib.layers.optimize_loss(loss=cost,
+                global_step=tf.train.get_global_step(),
+                learning_rate=lrs[pp], optimizer="Adam")
 
             init = tf.global_variables_initializer()
             with tf.Session() as sess:
@@ -532,11 +524,9 @@ def get_hyperparams(regression, ttn, xscale, yscale, x1, y1, dropout_keep_prob,
     print("Determining number of epochs needed...")
     training_epochs = 3000; pp = 0;
     accur = np.zeros((1, training_epochs))
-            #optimizer = tfa.layers.optimize_loss(loss=cost,
-            #    global_step=tf.train.get_global_step(),
-            #    learning_rate=learnrate, optimizer="Adam")
-    optimizer = tf.train.AdamOptimizer(learning_rate=learnrate).minimize(loss=cost,  global_step=tf.train.get_global_step())
-
+    optimizer = tf.contrib.layers.optimize_loss(loss=cost,
+                global_step=tf.train.get_global_step(),
+                learning_rate=learnrate, optimizer="Adam")
 
     init = tf.global_variables_initializer()    
     with tf.Session() as sess:
@@ -630,7 +620,7 @@ def tf_continue_training(regression, xscale, yscale, x1, y1, ntrees,
         y = sess[pp].graph.get_tensor_by_name("target:0")
         keep_prob = sess[pp].graph.get_tensor_by_name("keep_prob:0")
         pred = sess[pp].graph.get_tensor_by_name("prediction:0")
-        optimizer = sess[pp].graph.get_operation_by_name("w1/Adam")
+        optimizer = sess[pp].graph.get_tensor_by_name("opt:0")
         cost = sess[pp].graph.get_tensor_by_name("cost:0")
         weights={}; biases={};
         for i in range(1,nhl+1):
