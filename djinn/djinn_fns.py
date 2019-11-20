@@ -16,6 +16,8 @@
 # For details about use and distribution, please read DJINN/LICENSE .
 ###############################################################################
 
+from __future__ import print_function
+
 import tensorflow as tf
 import numpy as np
 from sklearn.tree import _tree
@@ -351,14 +353,15 @@ def tf_dropout_regression(regression, ttn, xscale, yscale, x1, y1, ntrees, filen
                 train_accur[pp][epoch] = avg_cost
                 valid_accur[pp][epoch] = cost.eval({x: xtest, y: ytest, keep_prob:dropout_keep_prob}) 
                 # display training progresss
-                if epoch % display_step == 0:
+                if epoch % display_step == 0 or epoch == (training_epochs-1):
                     if regression == True:
-                        print("Epoch:", '%04d' % (epoch+1), "cost=", "{:.9f}".format(avg_cost))
+                        print("Epoch:", '%04d' % (epoch+1),'/ %d' %(training_epochs), "cost=", "{:.9f}".format(avg_cost), end='\r')
                     #for classification, print cost and accuracy:
                     else: 
                         avg_accuracy = accuracy.eval({x: xtrain, y: ytrain, keep_prob:dropout_keep_prob})
-                        print("Epoch:", '%04d' % (epoch+1), "cost=", "{:.9f}".format(avg_cost),
-                               "accuracy=", "{:.3f}".format(avg_accuracy))
+                        print("Epoch:", '%04d' % (epoch+1),'/ %d'%(training_epochs), "cost=", "{:.9f}".format(avg_cost),
+                               "accuracy=", "{:.3f}".format(avg_accuracy),end='\r')
+            print("")
             print("Optimization Finished!")
 
             #save final weights/biases
@@ -646,15 +649,16 @@ def tf_continue_training(regression, xscale, yscale, x1, y1, ntrees,
                                         keep_prob:dropout_keep_prob})
                 avg_cost += c / total_batch
                 # display training progresss
-            if epoch % display_step == 0:
+            if epoch % display_step == 0 or epoch == (training_epochs-1):
                 if regression == True:
-                    print("Epoch:", '%04d' % (epoch+1), "cost=", "{:.9f}".format(avg_cost))
+                    print("Epoch:", '%04d' % (epoch+1),'/ %d' %(training_epochs), "cost=", "{:.9f}".format(avg_cost), end='\r')
                 #for classification, print cost and accuracy:
                 else: 
                     avg_accuracy = sess[pp].run(accuracy, 
                         feed_dict = {x: xtrain, y: ytrain, keep_prob:dropout_keep_prob})
-                    print("Epoch:", '%04d' % (epoch+1), "cost=", "{:.9f}".format(avg_cost),
-                           "accuracy=", "{:.3f}".format(avg_accuracy))
+                    print("Epoch:", '%04d' % (epoch+1), '/ %d' %(training_epochs), "cost=", "{:.9f}".format(avg_cost),
+                           "accuracy=", "{:.3f}".format(avg_accuracy), end='\r')
+        print("")
         print("Optimization Finished!")
 
         #save model and nn info 
