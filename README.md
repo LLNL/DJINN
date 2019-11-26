@@ -42,6 +42,13 @@ For Mac users with Anaconda installs, it might be necessary to manually install 
 If matplotlib will not import, try running "pythonw", for example: 
 
     $ pythonw djinn_example.py
+    
+**Python3 and Tensorflow2**
+There is a branch (tf2-py3) that offers a python3 friendly version of djinn that runs on tensorflow2. You can make the tensorflow1 version of djinn python3 friendly by modifying the "djinn.py" script by changing: 
+    $ from djinn_fns 
+    to 
+    $ from .djinn_fns 
+
 
 ### Documentation
 To view the DJINN documentation: 
