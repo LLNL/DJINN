@@ -70,9 +70,10 @@ Citing DJINN
 -----------
 If you use DJINN in your research, please cite the following paper:
 
-"Deep neural network initialization with decision trees", 
-Humbird, K. D.; Peterson, J. L.; McClarren, R. G., IEEE Transactions on Neural Networks and Learning Systems (2018). 
-Early access: 10.1109/TNNLS.2018.2869694
+K. D. Humbird, J. L. Peterson and R. G. Mcclarren, "Deep Neural Network Initialization With Decision Trees," in IEEE Transactions on Neural Networks and Learning Systems, vol. 30, no. 5, pp. 1286-1295, May 2019.
+doi: 10.1109/TNNLS.2018.2869694,
+URL: http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=8478232&isnumber=8695188
+
 
 
 
