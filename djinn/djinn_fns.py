@@ -335,9 +335,7 @@ def tf_dropout_regression(regression, ttn, xscale, yscale, x1, y1, ntrees, filen
         #            learning_rate=learnrate, optimizer="Adam")
         #optimizer=tf.add(optimize,0,name="opt")
 
-        optimize = tf.train.AdamOptimizer(learning_rate=learnrate).minimize(loss=cost,  global_step=tf.train.get_global_step())
-        optimizer=tf.add(optimize,0,name="opt")
-
+        optimizer = tf.train.AdamOptimizer(learning_rate=learnrate).minimize(loss=cost,  global_step=tf.train.get_global_step(),name="Adam")
 
         #initialize vars & launch session
         init = tf.global_variables_initializer()
@@ -537,10 +535,11 @@ def get_hyperparams(regression, ttn, xscale, yscale, x1, y1, dropout_keep_prob,
     print("Determining number of epochs needed...")
     training_epochs = 3000; pp = 0;
     accur = np.zeros((1, training_epochs))
+    optimizer = tf.train.AdamOptimizer(learning_rate=learnrate).minimize(loss=cost,
+                global_step=tf.train.get_global_step(),name="opt")
     #optimizer = tf.contrib.layers.optimize_loss(loss=cost,
     #            global_step=tf.train.get_global_step(),
     #            learning_rate=learnrate, optimizer="Adam")
-    optimizer = tf.train.AdamOptimizer(learning_rate=learnrate).minimize(loss=cost,  global_step=tf.train.get_global_step(),name="opt")
 
     init = tf.global_variables_initializer()    
     with tf.Session() as sess:
@@ -634,8 +633,9 @@ def tf_continue_training(regression, xscale, yscale, x1, y1, ntrees,
         y = sess[pp].graph.get_tensor_by_name("target:0")
         keep_prob = sess[pp].graph.get_tensor_by_name("keep_prob:0")
         pred = sess[pp].graph.get_tensor_by_name("prediction:0")
-        optimizer = sess[pp].graph.get_tensor_by_name("opt:0")
+        optimizer = sess[pp].graph.get_operation_by_name("Adam")
         cost = sess[pp].graph.get_tensor_by_name("cost:0")
+        #optimizer = tf.train.AdamOptimizer(learning_rate=learnrate).minimize(loss=cost,  global_step=tf.train.get_global_step(),name="Adam")
         weights={}; biases={};
         for i in range(1,nhl+1):
             weights['h%s'%i] = sess[pp].graph.get_tensor_by_name("w%s:0"%i)
@@ -680,4 +680,3 @@ def tf_continue_training(regression, xscale, yscale, x1, y1, ntrees,
     with open('%sretrained_nn_info_%s.pkl'%(modelpath, modelname), 'wb') as f1:
         cPickle.dump(nninfo, f1)    
     return()
-
