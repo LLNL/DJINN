@@ -16,14 +16,21 @@
 # For details about use and distribution, please read DJINN/LICENSE .
 ###############################################################################
 
-import tensorflow as tf
+try: 
+    import tensorflow.compat.v1 as tf
+    tf.disable_v2_behavior()
+except: 
+    import tensorflow as tf
 import numpy as np
-try: import cPickle
-except: import _pickle as cPickle
+try: 
+    import cPickle
+except: 
+    import _pickle as cPickle
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import MinMaxScaler
 from djinn_fns import tree_to_nn_weights, tf_dropout_regression, \
                get_hyperparams, tf_continue_training
+
 
 
 def load(model_name, model_path="./"):
