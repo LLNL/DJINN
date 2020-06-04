@@ -508,7 +508,7 @@ def get_hyperparams(regression, ttn, xscale, yscale, x1, y1, dropout_keep_prob,
             #optimizer = tf.contrib.layers.optimize_loss(loss=cost,
             #    global_step=tf.train.get_global_step(),
             #    learning_rate=lrs[pp], optimizer="Adam")
-            optimizer = tf.train.AdamOptimizer(learning_rate=learnrate).minimize(loss=cost,  global_step=tf.train.get_global_step(),name="opt")
+            optimizer = tf.train.AdamOptimizer(learning_rate=lrs[pp]).minimize(loss=cost,  global_step=tf.train.get_global_step(),name="opt")
 
 
 
@@ -537,9 +537,10 @@ def get_hyperparams(regression, ttn, xscale, yscale, x1, y1, dropout_keep_prob,
     print("Determining number of epochs needed...")
     training_epochs = 3000; pp = 0;
     accur = np.zeros((1, training_epochs))
-    optimizer = tf.contrib.layers.optimize_loss(loss=cost,
-                global_step=tf.train.get_global_step(),
-                learning_rate=learnrate, optimizer="Adam")
+    #optimizer = tf.contrib.layers.optimize_loss(loss=cost,
+    #            global_step=tf.train.get_global_step(),
+    #            learning_rate=learnrate, optimizer="Adam")
+    optimizer = tf.train.AdamOptimizer(learning_rate=learnrate).minimize(loss=cost,  global_step=tf.train.get_global_step(),name="opt")
 
     init = tf.global_variables_initializer()    
     with tf.Session() as sess:
