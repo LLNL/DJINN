@@ -16,7 +16,13 @@
 # For details about use and distribution, please read DJINN/LICENSE .
 ###############################################################################
 
-import tensorflow as tf
+try: 
+    import tensorflow.compat.v1 as tf
+    tf.disable_v2_behavior()
+except: 
+    import tensorflow as tf
+
+
 import numpy as np
 from sklearn.tree import _tree
 from sklearn.preprocessing import MinMaxScaler
@@ -24,7 +30,7 @@ try: from sklearn.model_selection import train_test_split
 except: from sklearn.cross_validation import train_test_split
 try: import cPickle
 except: import _pickle as cPickle
-
+        
         
 def tree_to_nn_weights(regression, X, Y, num_trees, rfr, random_state) :
     """ Main function to map tree to neural network. Determines architecture, initial weights.  
@@ -324,10 +330,14 @@ def tf_dropout_regression(regression, ttn, xscale, yscale, x1, y1, ntrees, filen
                       weight_decay, name="cost") 
 
         #use adam optimizer from tflearn                                          
-        optimize = tf.contrib.layers.optimize_loss(loss=cost,
-                    global_step=tf.train.get_global_step(),
-                    learning_rate=learnrate, optimizer="Adam")
-        optimizer=tf.add(optimize,0,name="opt")
+        #optimize = tf.contrib.layers.optimize_loss(loss=cost,
+        #            global_step=tf.train.get_global_step(),
+        #            learning_rate=learnrate, optimizer="Adam")
+        #optimizer=tf.add(optimize,0,name="opt")
+
+        optimizer = tf.train.AdamOptimizer(learning_rate=learnrate).minimize(loss=cost,  global_step=tf.train.get_global_step(),name="opt")
+
+
 
         #initialize vars & launch session
         init = tf.global_variables_initializer()
@@ -495,9 +505,12 @@ def get_hyperparams(regression, ttn, xscale, yscale, x1, y1, dropout_keep_prob,
                 cost = tf.add(tf.reduce_mean(tf.square(y-predictions)), 
                           weight_decay, name="cost") 
 
-            optimizer = tf.contrib.layers.optimize_loss(loss=cost,
-                global_step=tf.train.get_global_step(),
-                learning_rate=lrs[pp], optimizer="Adam")
+            #optimizer = tf.contrib.layers.optimize_loss(loss=cost,
+            #    global_step=tf.train.get_global_step(),
+            #    learning_rate=lrs[pp], optimizer="Adam")
+            optimizer = tf.train.AdamOptimizer(learning_rate=learnrate).minimize(loss=cost,  global_step=tf.train.get_global_step(),name="opt")
+
+
 
             init = tf.global_variables_initializer()
             with tf.Session() as sess:
