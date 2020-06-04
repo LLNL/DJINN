@@ -335,8 +335,8 @@ def tf_dropout_regression(regression, ttn, xscale, yscale, x1, y1, ntrees, filen
         #            learning_rate=learnrate, optimizer="Adam")
         #optimizer=tf.add(optimize,0,name="opt")
 
-        optimizer = tf.train.AdamOptimizer(learning_rate=learnrate).minimize(loss=cost,  global_step=tf.train.get_global_step(),name="opt")
-
+        optimize = tf.train.AdamOptimizer(learning_rate=learnrate).minimize(loss=cost,  global_step=tf.train.get_global_step())
+        optimizer=tf.add(optimize,0,name="opt")
 
 
         #initialize vars & launch session
