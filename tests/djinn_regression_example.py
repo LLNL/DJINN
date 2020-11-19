@@ -135,12 +135,13 @@ print('M Abs Err',mabs)
 print('Expl. Var.',exvar)
 
 # make a pretty plot
+yerrors = np.column_stack((bm-bl, bu-bm)).reshape((2,bl.shape[0]))
 g=np.linspace(np.min(y_test),np.max(y_test),10)    
 fig, axs = plt.subplots(1,1, figsize=(8,8), facecolor='w', edgecolor='k')
 fig.subplots_adjust(hspace = .15, wspace=.1)
 sc=axs.scatter(y_test, bm, linewidth=0,s=6, 
                   alpha=0.8, c='#68d1ca')
-a,b,c=axs.errorbar(y_test, bm, yerr=[bm-bl,bu-bm], marker='',ls='',zorder=0, 
+a,b,c=axs.errorbar(y_test, bm, yerr=yerrors, marker='',ls='',zorder=0, 
                    alpha=0.5, ecolor='black')
 axs.set_xlabel("True")
 axs.set_ylabel("B-DJINN Prediction")    
