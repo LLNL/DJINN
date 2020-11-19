@@ -42,6 +42,13 @@ For Mac users with Anaconda installs, it might be necessary to manually install 
 If matplotlib will not import, try running "pythonw", for example: 
 
     $ pythonw djinn_example.py
+    
+**Python3 and Tensorflow2**
+There is a branch (tf2-py3) that offers a python3 friendly version of djinn that runs on tensorflow2. You can make the tensorflow1 version of djinn python3 friendly by modifying the "djinn.py" script by changing: 
+    $ from djinn_fns 
+    to 
+    $ from .djinn_fns 
+
 
 ### Documentation
 To view the DJINN documentation: 
@@ -63,9 +70,10 @@ Citing DJINN
 -----------
 If you use DJINN in your research, please cite the following paper:
 
-"Deep neural network initialization with decision trees", 
-Humbird, K. D.; Peterson, J. L.; McClarren, R. G., IEEE Transactions on Neural Networks and Learning Systems (2018). 
-Early access: 10.1109/TNNLS.2018.2869694
+K. D. Humbird, J. L. Peterson and R. G. Mcclarren, "Deep Neural Network Initialization With Decision Trees," in IEEE Transactions on Neural Networks and Learning Systems, vol. 30, no. 5, pp. 1286-1295, May 2019.
+doi: 10.1109/TNNLS.2018.2869694,
+URL: http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=8478232&isnumber=8695188
+
 
 
 
