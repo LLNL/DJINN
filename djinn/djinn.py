@@ -117,7 +117,7 @@ class DJINN_Regressor():
 
         # Train the random forest
         rfr = RandomForestRegressor(self.__n_trees, max_depth=self.__tree_max_depth,
-                                    bootstrap=False, random_state=random_state)
+                                    bootstrap=True, random_state=random_state)
         if self.__regression == True: 
             if (single_output == True): 
                 rfr.fit(self.__xscale.transform(X), self.__yscale.transform(Y).flatten())
@@ -193,7 +193,7 @@ class DJINN_Regressor():
 
         # Train the random forest
         rfr = RandomForestRegressor(self.__n_trees, max_depth=self.__tree_max_depth,
-                                    bootstrap=False, random_state=random_state)
+                                    bootstrap=True, random_state=random_state)
         if self.__regression == True: 
             if (single_output == True): 
                 rfr.fit(self.__xscale.transform(X), self.__yscale.transform(Y).flatten())
