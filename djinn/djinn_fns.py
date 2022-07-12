@@ -386,7 +386,7 @@ def tf_dropout_regression(regression, ttn, xscale, yscale, x1, y1, ntrees, filen
     if(savefiles == True):        
         with open('%snn_info_%s.pkl'%(modelpath, filename), 'wb') as f1:
             cPickle.dump(nninfo, f1)
-    return(nninfo)
+    return(nninfo, npl)
 
 
 def get_hyperparams(regression, ttn, xscale, yscale, x1, y1, dropout_keep_prob, 
