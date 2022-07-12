@@ -195,7 +195,8 @@ def tree_to_nn_weights(regression, X, Y, num_trees, rfr, random_state) :
         tree_to_network['network_shape']['tree_%s'%tree] = djinn_arch
         tree_to_network['weights']['tree_%s'%tree] = djinn_weights
         tree_to_network['biases']['tree_%s'%tree] = [] #maybe add biases
-
+        print("DJINN Architecture : ")
+        print(djinn_arch)
     return tree_to_network
  
     
