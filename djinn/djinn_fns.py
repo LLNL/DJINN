@@ -275,8 +275,6 @@ def tf_dropout_regression(regression, ttn, xscale, yscale, x1, y1, ntrees, filen
 
         #get network shape from djinn mapping
         npl = ttn['network_shape'][keys]
-        print("DJINN ARCH : ")
-        print(npl)
         nhl = len(npl)-2
         n_hidden = {}
         for i in range(1, len(npl)-1):
