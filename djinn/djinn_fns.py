@@ -195,8 +195,6 @@ def tree_to_nn_weights(regression, X, Y, num_trees, rfr, random_state) :
         tree_to_network['network_shape']['tree_%s'%tree] = djinn_arch
         tree_to_network['weights']['tree_%s'%tree] = djinn_weights
         tree_to_network['biases']['tree_%s'%tree] = [] #maybe add biases
-        print("DJINN Architecture : ")
-        print(djinn_arch)
     return tree_to_network
  
     
@@ -277,6 +275,8 @@ def tf_dropout_regression(regression, ttn, xscale, yscale, x1, y1, ntrees, filen
 
         #get network shape from djinn mapping
         npl = ttn['network_shape'][keys]
+        print("DJINN ARCH : ")
+        print(npl)
         nhl = len(npl)-2
         n_hidden = {}
         for i in range(1, len(npl)-1):
