@@ -211,6 +211,7 @@ class DJINN_Regressor():
             raise Exception("Error: Cannot build decision tree.")
         # Map trees to neural networks
         tree_to_network = tree_to_nn_weights(self.__regression, X, Y, self.__n_trees, rfr, random_state)
+        print("DJINN Architecure: ", tree_to_network['network_shape']['tree_%s'%0])
         if(batch_size == 0): batch_size = int(np.ceil(0.05*len(Y)))
         tf_dropout_regression(self.__regression, tree_to_network, self.__xscale, 
                              self.__yscale, X, Y,ntrees=self.__n_trees,
